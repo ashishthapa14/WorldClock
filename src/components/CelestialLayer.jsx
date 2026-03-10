@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useCurrentTime } from '../hooks/useCurrentTime';
 
 function getMoonPhase(date) {
     let year = date.getFullYear();
@@ -25,59 +26,47 @@ function getMoonPhase(date) {
     else return { name: "Waning Crescent", icon: <path d="M3 11.21A9 9 0 1 0 12.79 21 7 7 0 0 1 3 11.21z"></path> };
 }
 
+/**
+ * Calculates and animates the global position of the Sun and Moon based on the current time of day.
+ * Re-renders driven actively by the injected useCurrentTime hook rather than manual lifecycles.
+ */
 export default function CelestialLayer() {
-    const [celestialData, setCelestialData] = useState({
-        isDayTime: true,
-        sunStyles: { opacity: 0, top: '50%', left: '50%' },
-        moonStyles: { opacity: 0, top: '50%', left: '50%' },
-        moonPhase: { name: 'Moon', icon: null }
-    });
+    const { now, hours, minutes, seconds } = useCurrentTime();
 
-    useEffect(() => {
-        const updatePositions = () => {
-            const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
+    const celestialData = useMemo(() => {
+        const decimalHours = hours + (minutes / 60) + (seconds / 3600);
+        const isDayTime = decimalHours >= 6 && decimalHours < 18;
 
-            const decimalHours = hours + (minutes / 60) + (seconds / 3600);
-            const isDayTime = decimalHours >= 6 && decimalHours < 18;
+        if (isDayTime) {
+            const dayProgress = (decimalHours - 6) / 12;
+            const xPos = 10 + (dayProgress * 80);
+            const yPos = 80 - (Math.sin(dayProgress * Math.PI) * 60);
 
-            if (isDayTime) {
-                const dayProgress = (decimalHours - 6) / 12;
-                const xPos = 10 + (dayProgress * 80);
-                const yPos = 80 - (Math.sin(dayProgress * Math.PI) * 60);
-
-                setCelestialData(prev => ({
-                    ...prev,
-                    isDayTime: true,
-                    sunStyles: { opacity: 1, left: `${xPos}%`, top: `${yPos}%` },
-                    moonStyles: { opacity: 0, left: '50%', top: '50%' }
-                }));
+            return {
+                isDayTime: true,
+                sunStyles: { opacity: 1, left: `${xPos}%`, top: `${yPos}%` },
+                moonStyles: { opacity: 0, left: '50%', top: '50%' },
+                moonPhase: { name: 'Moon', icon: null }
+            };
+        } else {
+            let nightProgress;
+            if (decimalHours >= 18) {
+                nightProgress = (decimalHours - 18) / 12;
             } else {
-                let nightProgress;
-                if (decimalHours >= 18) {
-                    nightProgress = (decimalHours - 18) / 12;
-                } else {
-                    nightProgress = 0.5 + (decimalHours / 12);
-                }
-
-                const xPos = 10 + (nightProgress * 80);
-                const yPos = 80 - (Math.sin(nightProgress * Math.PI) * 60);
-
-                setCelestialData({
-                    isDayTime: false,
-                    sunStyles: { opacity: 0, left: '50%', top: '50%' },
-                    moonStyles: { opacity: 1, left: `${xPos}%`, top: `${yPos}%` },
-                    moonPhase: getMoonPhase(now)
-                });
+                nightProgress = 0.5 + (decimalHours / 12);
             }
-        };
 
-        updatePositions();
-        const inter = setInterval(updatePositions, 1000);
-        return () => clearInterval(inter);
-    }, []);
+            const xPos = 10 + (nightProgress * 80);
+            const yPos = 80 - (Math.sin(nightProgress * Math.PI) * 60);
+
+            return {
+                isDayTime: false,
+                sunStyles: { opacity: 0, left: '50%', top: '50%' },
+                moonStyles: { opacity: 1, left: `${xPos}%`, top: `${yPos}%` },
+                moonPhase: getMoonPhase(now)
+            };
+        }
+    }, [now, hours, minutes, seconds]);
 
     return (
         <>
@@ -96,9 +85,9 @@ export default function CelestialLayer() {
                 </svg>
             </div>
             <div id="moon" className="celestial-body moon" style={celestialData.moonStyles}>
-                <div className="celestial-info">{celestialData.moonPhase.name}</div>
+                <div className="celestial-info">{celestialData.moonPhase?.name || 'Moon'}</div>
                 <svg viewBox="0 0 24 24" fill="none" className="icon" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    {celestialData.moonPhase.icon}
+                    {celestialData.moonPhase?.icon}
                 </svg>
             </div>
         </>

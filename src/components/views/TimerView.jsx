@@ -1,5 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { formatTimerDisplay } from '../../utils/timeFormat';
 
+/**
+ * Customizable countdown timer view.
+ * @param {{ isActive: boolean }} props
+ */
 export default function TimerView({ isActive }) {
     const [totalSeconds, setTotalSeconds] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
@@ -28,12 +34,10 @@ export default function TimerView({ isActive }) {
         return () => clearInterval(interval);
     }, [isRunning, totalSeconds]);
 
-    const handleStart = () => {
+    const handleStart = useCallback(() => {
         if (isRunning) {
-            // Pause
             setIsRunning(false);
         } else {
-            // Start or Resume
             if (showInputs) {
                 const h = parseInt(inputH) || 0;
                 const m = parseInt(inputM) || 0;
@@ -47,20 +51,18 @@ export default function TimerView({ isActive }) {
             }
             setIsRunning(true);
         }
-    };
+    }, [isRunning, showInputs, inputH, inputM, inputS, totalSeconds]);
 
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         setIsRunning(false);
         setTotalSeconds(0);
         setShowInputs(true);
         setInputH('');
         setInputM('');
         setInputS('');
-    };
+    }, []);
 
-    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    const { h, m, s } = formatTimerDisplay(totalSeconds);
 
     return (
         <div id="view-timer" className={`view ${isActive ? 'active' : ''}`}>
@@ -99,3 +101,7 @@ export default function TimerView({ isActive }) {
         </div>
     );
 }
+
+TimerView.propTypes = {
+    isActive: PropTypes.bool.isRequired,
+};

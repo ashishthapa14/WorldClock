@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 export default function NavigationBar({ activeTab, setActiveTab }) {
     const tabs = [
         {
@@ -68,3 +70,8 @@ export default function NavigationBar({ activeTab, setActiveTab }) {
         </nav>
     );
 }
+
+NavigationBar.propTypes = {
+    activeTab: PropTypes.string.isRequired,
+    setActiveTab: PropTypes.func.isRequired,
+};

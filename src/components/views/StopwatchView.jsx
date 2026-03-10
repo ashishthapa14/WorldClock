@@ -1,22 +1,27 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { formatStopwatchTime } from '../../utils/timeFormat';
 
+/**
+ * High precision animated stopwatch using RequestAnimationFrame.
+ * @param {{ isActive: boolean }} props 
+ */
 export default function StopwatchView({ isActive }) {
     const [elapsedTime, setElapsedTime] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
     const [laps, setLaps] = useState([]);
 
-    // Use ref to track the start time for high precision
     const lastTimeRef = useRef(0);
     const animationFrameRef = useRef(null);
 
-    useEffect(() => {
-        const updateTimer = () => {
-            const nowTime = performance.now();
-            setElapsedTime(prev => prev + (nowTime - lastTimeRef.current));
-            lastTimeRef.current = nowTime;
-            animationFrameRef.current = requestAnimationFrame(updateTimer);
-        };
+    const updateTimer = useCallback(() => {
+        const nowTime = performance.now();
+        setElapsedTime(prev => prev + (nowTime - lastTimeRef.current));
+        lastTimeRef.current = nowTime;
+        animationFrameRef.current = requestAnimationFrame(updateTimer);
+    }, []);
 
+    useEffect(() => {
         if (isRunning) {
             lastTimeRef.current = performance.now();
             animationFrameRef.current = requestAnimationFrame(updateTimer);
@@ -27,29 +32,22 @@ export default function StopwatchView({ isActive }) {
         return () => {
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         };
-    }, [isRunning]);
+    }, [isRunning, updateTimer]);
 
-    const handleStart = () => setIsRunning(prev => !prev);
+    const handleStart = useCallback(() => setIsRunning(prev => !prev), []);
 
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         setIsRunning(false);
         setElapsedTime(0);
         setLaps([]);
-    };
+    }, []);
 
-    const handleLap = () => {
+    const handleLap = useCallback(() => {
         if (!isRunning) return;
         setLaps(prev => [{ time: elapsedTime, lapCount: prev.length + 1 }, ...prev]);
-    };
+    }, [isRunning, elapsedTime]);
 
-    const formatTime = (ms) => {
-        const minutes = Math.floor(ms / 60000).toString().padStart(2, '0');
-        const seconds = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
-        const milliseconds = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
-        return { m: minutes, s: seconds, ms: milliseconds };
-    };
-
-    const display = formatTime(elapsedTime);
+    const display = formatStopwatchTime(elapsedTime);
 
     return (
         <div id="view-stopwatch" className={`view ${isActive ? 'active' : ''}`}>
@@ -80,7 +78,7 @@ export default function StopwatchView({ isActive }) {
                 <div className="laps-container">
                     <ul id="laps-list">
                         {laps.map((lap, idx) => {
-                            const formatted = formatTime(lap.time);
+                            const formatted = formatStopwatchTime(lap.time);
                             return (
                                 <li key={idx} className="lap-item">
                                     <span className="lap-number">Lap {lap.lapCount}</span>
@@ -94,3 +92,7 @@ export default function StopwatchView({ isActive }) {
         </div>
     );
 }
+
+StopwatchView.propTypes = {
+    isActive: PropTypes.bool.isRequired,
+};

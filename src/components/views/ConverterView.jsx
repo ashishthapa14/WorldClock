@@ -1,98 +1,48 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import PropTypes from 'prop-types';
+import { useCitySearch } from '../../hooks/useCitySearch';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
+import { calculateTimezoneDifference } from '../../utils/timeFormat';
 
+/**
+ * Converter view for global timezone searches and comparisons.
+ * @param {{ isActive: boolean }} props
+ */
 export default function ConverterView({ isActive }) {
     const [query, setQuery] = useState('');
-    const [suggestions, setSuggestions] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [selectedTimezone, setSelectedTimezone] = useState('');
-
-    const [displayTime, setDisplayTime] = useState('--:-- --');
     const [displayLocation, setDisplayLocation] = useState('Search for a city');
-    const [diffInfo, setDiffInfo] = useState({ text: '', className: '', visible: false });
 
-    // Handle live time updating for selected timezone
-    useEffect(() => {
-        if (!selectedTimezone) {
-            setDisplayTime('--:-- --');
-            setDiffInfo({ visible: false });
-            return;
+    const { suggestions, isLoading } = useCitySearch(query);
+    const { now } = useCurrentTime();
+
+    // Memoize the time formatting to prevent expensive Intl API calls every tick
+    // if the selectedTimezone is invalid or missing, it will throw, which we catch.
+    const displayTime = useMemo(() => {
+        if (!selectedTimezone) return '--:-- --';
+        try {
+            const options = {
+                timeZone: selectedTimezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            };
+            return new Intl.DateTimeFormat('en-US', options).format(now);
+        } catch {
+            return "Invalid Zone";
         }
+    }, [now, selectedTimezone]);
 
-        const updateConvertedTime = () => {
-            try {
-                const now = new Date();
-                const options = {
-                    timeZone: selectedTimezone,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                };
-                const formatter = new Intl.DateTimeFormat('en-US', options);
-                setDisplayTime(formatter.format(now));
+    const diffInfo = useMemo(() => {
+        if (!selectedTimezone || displayTime === "Invalid Zone") {
+            return { text: '', className: '', visible: false };
+        }
+        return calculateTimezoneDifference(now, selectedTimezone);
+    }, [now, selectedTimezone, displayTime]);
 
-                const targetDateStr = now.toLocaleString('en-US', { timeZone: selectedTimezone });
-                const targetDate = new Date(targetDateStr);
-                const diffMinutes = Math.round((targetDate - now) / 60000);
-
-                if (diffMinutes === 0) {
-                    setDiffInfo({ text: 'Same time as local', className: 'same', visible: true });
-                } else {
-                    const isAhead = diffMinutes > 0;
-                    const absDiff = Math.abs(diffMinutes);
-                    const diffH = Math.floor(absDiff / 60);
-                    const diffM = absDiff % 60;
-
-                    let diffText = "";
-                    if (diffH > 0) diffText += `${diffH}h `;
-                    if (diffM > 0) diffText += `${diffM}m `;
-                    diffText += isAhead ? "ahead" : "behind";
-
-                    setDiffInfo({ text: diffText.trim(), className: isAhead ? 'ahead' : 'behind', visible: true });
-                }
-            } catch (e) {
-                setDisplayTime("Invalid Zone");
-                setDiffInfo({ visible: false });
-            }
-        };
-
-        updateConvertedTime();
-        const inter = setInterval(updateConvertedTime, 1000);
-        return () => clearInterval(inter);
-    }, [selectedTimezone]);
-
-    // Handle Search API debounce
-    useEffect(() => {
-        const timeoutId = setTimeout(async () => {
-            if (!query.trim()) {
-                setSuggestions([]);
-                setShowSuggestions(false);
-                setIsLoading(false);
-                return;
-            }
-
-            setIsLoading(true);
-            setShowSuggestions(true);
-            try {
-                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
-                const data = await res.json();
-                if (data.results) {
-                    setSuggestions(data.results.filter(p => p.timezone));
-                } else {
-                    setSuggestions([]);
-                }
-            } catch (err) {
-                console.error("Search API failed:", err);
-                setSuggestions([]);
-            }
-            setIsLoading(false);
-        }, 400);
-
-        return () => clearTimeout(timeoutId);
-    }, [query]);
-
-    const handleSelect = (place) => {
+    const handleSelect = useCallback((place) => {
         const details = [place.name];
         if (place.admin1 && place.admin1 !== place.name) details.push(place.admin1);
         if (place.country) details.push(place.country);
@@ -101,7 +51,7 @@ export default function ConverterView({ isActive }) {
         setQuery(place.name);
         setDisplayLocation(details.join(', '));
         setShowSuggestions(false);
-    };
+    }, []);
 
     return (
         <div id="view-converter" className={`view ${isActive ? 'active' : ''}`}>
@@ -148,3 +98,7 @@ export default function ConverterView({ isActive }) {
         </div>
     );
 }
+
+ConverterView.propTypes = {
+    isActive: PropTypes.bool.isRequired,
+};

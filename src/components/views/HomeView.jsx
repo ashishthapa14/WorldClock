@@ -1,124 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import SpaceFactWidget from '../SpaceFactWidget';
+import { useGeolocation } from '../../hooks/useGeolocation';
+import { useCurrentTime } from '../../hooks/useCurrentTime';
+import { getCelestialStatus } from '../../utils/timeFormat';
 
+/**
+ * Main Home View component displaying the active world clock.
+ * @param {{ isActive: boolean }} props
+ */
 export default function HomeView({ isActive }) {
-    const [timeData, setTimeData] = useState({
-        location: 'Local Time',
-        hours: '00',
-        minutes: '00',
-        seconds: '00',
-        ampm: 'AM',
-        date: 'Loading date...',
-        status: 'Tracking...'
-    });
+    const { location } = useGeolocation();
+    const { now, hours, minutes, seconds } = useCurrentTime();
     const [is24Hour, setIs24Hour] = useState(false);
 
-    useEffect(() => {
-        // Find location once
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                try {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-                    const data = await response.json();
-                    if (data && data.address) {
-                        const city = data.address.city || data.address.town || data.address.village || data.address.county || data.address.state;
-                        const country = data.address.country;
-                        if (city && country) {
-                            setTimeData(prev => ({ ...prev, location: `${city}, ${country}` }));
-                        } else if (city || country) {
-                            setTimeData(prev => ({ ...prev, location: city || country }));
-                        }
-                    }
-                } catch (e) {
-                    // Fallback to timeZone name
-                    const tzFallback = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                    if (tzFallback) {
-                        const parts = tzFallback.split('/');
-                        const city = parts[parts.length - 1].replace(/_/g, ' ');
-                        const region = parts[0] ? parts[0].replace(/_/g, ' ') : '';
-                        setTimeData(prev => ({ ...prev, location: `${city}${region && region !== city ? ', ' + region : ''}` }));
-                    }
-                }
-            }, () => {
-                const tzFallback = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                if (tzFallback) {
-                    const parts = tzFallback.split('/');
-                    const city = parts[parts.length - 1].replace(/_/g, ' ');
-                    const region = parts[0] ? parts[0].replace(/_/g, ' ') : '';
-                    setTimeData(prev => ({ ...prev, location: `${city}${region && region !== city ? ', ' + region : ''}` }));
-                }
-            });
-        }
+    const ampmDisplay = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = is24Hour ? hours : (hours % 12 || 12);
 
-        const updateClock = () => {
-            const now = new Date();
-            const h = now.getHours();
-            const m = now.getMinutes();
-            const s = now.getSeconds();
-            const ampmDisplay = h >= 12 ? 'PM' : 'AM';
+    const dateStr = now.toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
 
-            let displayHour;
-            if (is24Hour) {
-                displayHour = h;
-            } else {
-                displayHour = h % 12 || 12;
-            }
-
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-
-            const decimalHours = h + (m / 60) + (s / 3600);
-            const isDayTime = decimalHours >= 6 && decimalHours < 18;
-            let statusText = "";
-
-            if (isDayTime) {
-                const dayProgress = (decimalHours - 6) / 12;
-                if (dayProgress < 0.2) statusText = "🌅 Morning • Sun is rising";
-                else if (dayProgress > 0.8) statusText = "🌇 Evening • Sun is setting";
-                else statusText = "☀️ Daytime • Sun is shining";
-            } else {
-                let nightProgress;
-                if (decimalHours >= 18) {
-                    nightProgress = (decimalHours - 18) / 12;
-                } else {
-                    nightProgress = 0.5 + (decimalHours / 12);
-                }
-                if (nightProgress < 0.2) statusText = "🌒 Evening • Moon is rising";
-                else if (nightProgress > 0.8) statusText = "🌘 Early Morning • Moon is setting";
-                else statusText = "🌔 Nighttime • Moon is shining";
-            }
-
-            setTimeData(prev => ({
-                ...prev,
-                hours: displayHour.toString().padStart(2, '0'),
-                minutes: m.toString().padStart(2, '0'),
-                seconds: s.toString().padStart(2, '0'),
-                ampm: ampmDisplay,
-                date: now.toLocaleDateString(undefined, options),
-                status: statusText
-            }));
-        };
-
-        updateClock();
-        const inter = setInterval(updateClock, 1000);
-        return () => clearInterval(inter);
-    }, [is24Hour]);
+    const statusText = getCelestialStatus(hours, minutes, seconds);
 
     return (
         <div id="view-home" className={`view ${isActive ? 'active' : ''}`}>
             <div className="clock-panel main-clock">
-                <div id="location">{timeData.location}</div>
+                <div id="location">{location}</div>
                 <div className="time-wrapper">
-                    <span id="hours">{timeData.hours}</span>
+                    <span id="hours">{displayHour.toString().padStart(2, '0')}</span>
                     <span className="colon">:</span>
-                    <span id="minutes">{timeData.minutes}</span>
+                    <span id="minutes">{minutes.toString().padStart(2, '0')}</span>
                     <span className="colon seconds-colon">:</span>
-                    <span id="seconds">{timeData.seconds}</span>
-                    {!is24Hour && <span id="ampm">{timeData.ampm}</span>}
+                    <span id="seconds">{seconds.toString().padStart(2, '0')}</span>
+                    {!is24Hour && <span id="ampm">{ampmDisplay}</span>}
                 </div>
-                <div id="date">{timeData.date}</div>
-                <div className="status-message" id="celestial-status">{timeData.status}</div>
+                <div id="date">{dateStr}</div>
+                <div className="status-message" id="celestial-status">{statusText}</div>
 
                 <div className="format-toggle-container">
                     <span>12h</span>
@@ -138,3 +59,7 @@ export default function HomeView({ isActive }) {
         </div>
     );
 }
+
+HomeView.propTypes = {
+    isActive: PropTypes.bool.isRequired,
+};

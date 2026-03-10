@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { formatFocusDisplay } from '../../utils/timeFormat';
 
+const DEFAULT_FOCUS_TIME = 25 * 60;
+
+/**
+ * Focus session view acting as a Pomodoro timer.
+ * @param {{ isActive: boolean }} props
+ */
 export default function FocusView({ isActive }) {
-    const defaultTime = 25 * 60;
-    const [timeRemaining, setTimeRemaining] = useState(defaultTime);
+    const [timeRemaining, setTimeRemaining] = useState(DEFAULT_FOCUS_TIME);
     const [isRunning, setIsRunning] = useState(false);
     const [status, setStatus] = useState('Ready to focus');
 
@@ -25,25 +32,24 @@ export default function FocusView({ isActive }) {
         return () => clearInterval(interval);
     }, [isRunning]);
 
-    const toggleTimer = () => {
+    const toggleTimer = useCallback(() => {
         if (isRunning) {
             setIsRunning(false);
             setStatus('Session paused');
         } else {
-            if (timeRemaining === 0) setTimeRemaining(defaultTime);
+            if (timeRemaining === 0) setTimeRemaining(DEFAULT_FOCUS_TIME);
             setIsRunning(true);
             setStatus('Focusing...');
         }
-    };
+    }, [isRunning, timeRemaining]);
 
-    const resetTimer = () => {
+    const resetTimer = useCallback(() => {
         setIsRunning(false);
-        setTimeRemaining(defaultTime);
+        setTimeRemaining(DEFAULT_FOCUS_TIME);
         setStatus('Ready to focus');
-    };
+    }, []);
 
-    const mins = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
-    const secs = (timeRemaining % 60).toString().padStart(2, '0');
+    const { m, s } = formatFocusDisplay(timeRemaining);
 
     return (
         <div id="view-focus" className={`view ${isActive ? 'active' : ''}`}>
@@ -56,11 +62,11 @@ export default function FocusView({ isActive }) {
                     <span>Focus Session</span>
                 </div>
                 <div className="focus-time-wrapper">
-                    <span>{mins}</span><span className="colon">:</span><span>{secs}</span>
+                    <span>{m}</span><span className="colon">:</span><span>{s}</span>
                 </div>
                 <div className="focus-controls">
                     <button onClick={toggleTimer} className="control-btn primary">
-                        {isRunning ? 'Pause' : (timeRemaining < defaultTime && timeRemaining > 0 ? 'Resume' : 'Start')}
+                        {isRunning ? 'Pause' : (timeRemaining < DEFAULT_FOCUS_TIME && timeRemaining > 0 ? 'Resume' : 'Start')}
                     </button>
                     <button onClick={resetTimer} className="control-btn secondary">Reset</button>
                 </div>
@@ -69,3 +75,7 @@ export default function FocusView({ isActive }) {
         </div>
     );
 }
+
+FocusView.propTypes = {
+    isActive: PropTypes.bool.isRequired,
+};
