@@ -11,6 +11,7 @@ export default function HomeView({ isActive }) {
         date: 'Loading date...',
         status: 'Tracking...'
     });
+    const [is24Hour, setIs24Hour] = useState(false);
 
     useEffect(() => {
         // Find location once
@@ -57,7 +58,13 @@ export default function HomeView({ isActive }) {
             const m = now.getMinutes();
             const s = now.getSeconds();
             const ampmDisplay = h >= 12 ? 'PM' : 'AM';
-            const displayHour = h % 12 || 12;
+
+            let displayHour;
+            if (is24Hour) {
+                displayHour = h;
+            } else {
+                displayHour = h % 12 || 12;
+            }
 
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
 
@@ -96,7 +103,7 @@ export default function HomeView({ isActive }) {
         updateClock();
         const inter = setInterval(updateClock, 1000);
         return () => clearInterval(inter);
-    }, []);
+    }, [is24Hour]);
 
     return (
         <div id="view-home" className={`view ${isActive ? 'active' : ''}`}>
@@ -108,10 +115,18 @@ export default function HomeView({ isActive }) {
                     <span id="minutes">{timeData.minutes}</span>
                     <span className="colon seconds-colon">:</span>
                     <span id="seconds">{timeData.seconds}</span>
-                    <span id="ampm">{timeData.ampm}</span>
+                    {!is24Hour && <span id="ampm">{timeData.ampm}</span>}
                 </div>
                 <div id="date">{timeData.date}</div>
                 <div className="status-message" id="celestial-status">{timeData.status}</div>
+
+                <button
+                    className="control-btn secondary"
+                    style={{ marginTop: '20px', padding: '8px 16px', fontSize: '0.9rem' }}
+                    onClick={() => setIs24Hour(!is24Hour)}
+                >
+                    Switch to {is24Hour ? '12-Hour' : '24-Hour'}
+                </button>
             </div>
 
             <SpaceFactWidget isActive={isActive} />
