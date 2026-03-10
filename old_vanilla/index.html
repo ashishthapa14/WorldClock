@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A premium world clock showing time and celestial bodies">
+    <title>World Clock & Sky Tracker</title>
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="map-container">
+        <!-- Celestial Bodies Layer -->
+        <div class="celestial-layer">
+            <div id="sun" class="celestial-body sun">
+                <div class="celestial-info">Our Sun</div>
+                <svg viewBox="0 0 24 24" fill="none" class="icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </div>
+            <div id="moon" class="celestial-body moon">
+                <div class="celestial-info" id="moon-phase-name">Moon</div>
+                <svg id="moon-icon" viewBox="0 0 24 24" fill="none" class="icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gradient Overlay to blend map with UI -->
+    <div class="gradient-overlay"></div>
+
+    <!-- Main Content Container with View States -->
+    <div id="view-home" class="view active">
+        <!-- Glassmorphism Clock Panel -->
+        <div class="clock-panel main-clock">
+            <div id="location">Detecting Zone...</div>
+            <div class="time-wrapper">
+                <span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span
+                    class="colon seconds-colon">:</span><span id="seconds">00</span>
+                <span id="ampm">AM</span>
+            </div>
+            <div id="date">Loading date...</div>
+            <div class="status-message" id="celestial-status">Tracking...</div>
+        </div>
+
+        <!-- Space Fact Widget -->
+        <div class="space-fact-widget">
+            <div class="widget-header">
+                <svg viewBox="0 0 24 24" fill="none" class="widget-icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>Cosmic Fact</span>
+            </div>
+            <p id="space-fact-text">Loading the universe...</p>
+        </div>
+    </div>
+
+    <!-- Converter View -->
+    <div id="view-converter" class="view">
+        <div class="clock-panel converter-panel">
+            <div class="widget-header">
+                <svg viewBox="0 0 24 24" fill="none" class="widget-icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Time Converter</span>
+            </div>
+            <div class="converter-content">
+                <div class="search-container">
+                    <input type="text" id="timezone-search" placeholder="Search city or country..." autocomplete="off">
+                    <ul id="timezone-suggestions" class="suggestions-list" style="display: none;"></ul>
+                </div>
+                <div id="converted-time" class="converted-time">--:-- --</div>
+                <div id="converted-location" class="converted-location">Search for a city</div>
+                <div id="time-difference" class="time-difference"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Focus View -->
+    <div id="view-focus" class="view">
+        <div class="clock-panel focus-panel">
+            <div class="widget-header">
+                <svg viewBox="0 0 24 24" fill="none" class="widget-icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span>Focus Session</span>
+            </div>
+            <div class="focus-time-wrapper">
+                <span id="focus-minutes">25</span><span class="colon">:</span><span id="focus-seconds">00</span>
+            </div>
+            <div class="focus-controls">
+                <button id="focus-start-btn" class="control-btn primary">Start</button>
+                <button id="focus-reset-btn" class="control-btn secondary">Reset</button>
+            </div>
+            <div class="focus-status" id="focus-status-text">Ready to focus</div>
+        </div>
+    </div>
+
+    <!-- Timer View -->
+    <div id="view-timer" class="view">
+        <div class="clock-panel timer-panel">
+            <div class="widget-header">
+                <svg viewBox="0 0 24 24" fill="none" class="widget-icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 12"></polyline>
+                </svg>
+                <span>Timer</span>
+            </div>
+
+            <div class="timer-input-group" id="timer-inputs">
+                <input type="number" id="timer-input-h" placeholder="00" min="0" max="99">
+                <span class="colon">:</span>
+                <input type="number" id="timer-input-m" placeholder="00" min="0" max="59">
+                <span class="colon">:</span>
+                <input type="number" id="timer-input-s" placeholder="00" min="0" max="59">
+            </div>
+
+            <div class="focus-time-wrapper" id="timer-display" style="display: none;">
+                <span id="timer-h">00</span><span class="colon">:</span><span id="timer-m">00</span><span
+                    class="colon">:</span><span id="timer-s">00</span>
+            </div>
+
+            <div class="focus-controls mt-20">
+                <button id="timer-start-btn" class="control-btn primary">Start</button>
+                <button id="timer-reset-btn" class="control-btn secondary">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stopwatch View -->
+    <div id="view-stopwatch" class="view">
+        <div class="clock-panel stopwatch-panel">
+            <div class="widget-header">
+                <svg viewBox="0 0 24 24" fill="none" class="widget-icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12"></polyline>
+                    <line x1="12" y1="2" x2="12" y2="4"></line>
+                </svg>
+                <span>Stopwatch</span>
+            </div>
+
+            <div class="focus-time-wrapper stopwatch-display">
+                <span id="stopwatch-m">00</span><span class="colon">:</span><span id="stopwatch-s">00</span><span
+                    class="colon">.</span><span id="stopwatch-ms" class="ms-text">00</span>
+            </div>
+
+            <div class="focus-controls mt-20">
+                <button id="stopwatch-start-btn" class="control-btn primary">Start</button>
+                <button id="stopwatch-lap-btn" class="control-btn secondary">Lap</button>
+                <button id="stopwatch-reset-btn" class="control-btn secondary">Reset</button>
+            </div>
+
+            <div class="laps-container">
+                <ul id="laps-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" data-target="view-home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Home</span>
+        </div>
+        <div class="nav-item" data-target="view-converter">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>World Time</span>
+        </div>
+        <div class="nav-item" data-target="view-focus">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>Focus</span>
+        </div>
+        <div class="nav-item" data-target="view-timer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 12"></polyline>
+            </svg>
+            <span>Timer</span>
+        </div>
+        <div class="nav-item" data-target="view-stopwatch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12"></polyline>
+                <line x1="12" y1="2" x2="12" y2="4"></line>
+            </svg>
+            <span>Stopwatch</span>
+        </div>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
