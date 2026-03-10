@@ -120,13 +120,18 @@ export default function HomeView({ isActive }) {
                 <div id="date">{timeData.date}</div>
                 <div className="status-message" id="celestial-status">{timeData.status}</div>
 
-                <button
-                    className="control-btn secondary"
-                    style={{ marginTop: '20px', padding: '8px 16px', fontSize: '0.9rem' }}
-                    onClick={() => setIs24Hour(!is24Hour)}
-                >
-                    Switch to {is24Hour ? '12-Hour' : '24-Hour'}
-                </button>
+                <div className="format-toggle-container">
+                    <span>12h</span>
+                    <label className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={is24Hour}
+                            onChange={() => setIs24Hour(!is24Hour)}
+                        />
+                        <span className="toggle-slider"></span>
+                    </label>
+                    <span style={{ color: is24Hour ? '#64ffda' : '#8da4d0', transition: 'color 0.3s' }}>24h</span>
+                </div>
             </div>
 
             <SpaceFactWidget isActive={isActive} />
